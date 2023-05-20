@@ -18,7 +18,12 @@ from logging.handlers import RotatingFileHandler
 
 # Log file setup - Change backupCount for amount of backup files, and maxBytes for max size.
 log_formatter = logging.Formatter('%(asctime)s %(message)s')
-log_file = '/home/ali/Documents/networkScanner.log'
+dir_path = os.path.join(os.getcwd(), 'LogsAndDevices')
+log_file = os.path.join(dir_path, 'networkScanner.log')
+
+if not os.path.exists(dir_path):
+    os.makedirs(dir_path)
+    
 log_handler = RotatingFileHandler(log_file, mode='a', maxBytes=5*1024*1024, backupCount=2, encoding=None, delay=0)
 log_handler.setFormatter(log_formatter)
 log_handler.setLevel(logging.INFO)
@@ -52,9 +57,9 @@ def update_device_log(devices, device_log, device_name_queue):
     connected_macs = [device['mac'] for device in devices]
     for mac in device_log:
         device_log[mac]['connected'] = 'Yes' if mac in connected_macs else 'No'
-    
+
     # Read existing device names from CSV file
-    file_path = "/home/ali/Documents/DeviceList.csv"
+    file_path = os.path.join(dir_path, 'DeviceList.csv')
     if os.path.exists(file_path):
         df = pd.read_csv(file_path)
         if 'mac' in df.columns:
@@ -64,7 +69,9 @@ def update_device_log(devices, device_log, device_name_queue):
                 if mac in device_log:
                     device_log[mac]['name'] = name
     else:
-        df = pd.DataFrame()
+        df = pd.DataFrame(columns=['ip', 'mac', 'vendor', 'first_seen', 'last_seen', 'connected', 'name'])
+        df.to_csv(file_path, index=False)
+
     
     for device in devices:
         if device['mac'] not in device_log:
@@ -96,8 +103,7 @@ def update_device_log(devices, device_log, device_name_queue):
 
 # Open the csv file and log the device info
 def log_devices(device_log):
-#    logging.info("Updating log file...")
-    file_path = "/home/ali/Documents/DeviceList.csv"
+    file_path = os.path.join(dir_path, 'DeviceList.csv')
     if os.path.exists(file_path):
         df = pd.read_csv(file_path)
         for mac, device in device_log.items():
@@ -116,9 +122,8 @@ device_log = {}
 print("Running...")
 logging.info("Starting networkScanner.py")
 while True:
-#    logging.info("Starting new scan...")
     devices = arpscan()
     device_log = update_device_log(devices, device_log, device_name_queue)
     log_devices(device_log)
-    time.sleep(60) # Edit the sleep time to change the scan rate
+    time.sleep(30) # Edit the sleep time to change the scan rate
 
